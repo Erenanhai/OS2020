@@ -66,21 +66,53 @@ int main()
 		printf("shell> ");
 
 		l = readcmd();
-		trace_cmd(l);
+		//trace_cmd(l);
+		
 		seq = l->seq;
 
 		if (! *seq) continue;
-
+		
 		if(!strcasecmp(**seq, "exit")) {
 			return 0;
 		}
-
+		
 		if(!strcasecmp(**seq, "cd")) {
 			change_dir((*seq)[1]);
 			continue;
 		}
 
-			
+		// Single;
+		int status;
+		int pid = fork();
+		if(pid == 0) {
+			execvp(seq[0][0], seq[0]);
+		}
+		else {
+			waitpid(pid, &status, 0);
+		}
 		
+		//Double;
+		int p[2];
+		pipe(p);
+		
+		int pid1 = fork();
+		if (pid1 == 0) {
+			close(1);
+			dup2(p[1],1);
+			close(p[0]); close(p[1]);
+			execvp(seq[0][0], seq[0]);
+		}
+		
+		int pid2 = fork();
+		if (pid2 == 0) {
+			close (0);
+			dup2(p[0],0);
+			close(p[1]); close(p[0]);
+			execvp(seq[1][0], seq[1]);
+		}
+		
+		close(p[0]); close(p[1]);
+		
+		waitpid(pid2, &status, 0);
 	}
 }
